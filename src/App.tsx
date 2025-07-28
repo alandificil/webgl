@@ -3,10 +3,14 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import * as THREE from 'three';
-// Corrigir import do GLTFLoader para funcionar com a instalação padrão do three
+// Corrigir import do GLTFLoader e RGBELoader para funcionar com a instalação padrão do three
 // @ts-ignore
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+// @ts-ignore
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
+
 
 function AirConditionerViewer() {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -17,6 +21,13 @@ function AirConditionerViewer() {
 
     // Cena, câmera e renderizador
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0); // Fundo claro
+    new EXRLoader()
+      .load('/overcast_industrial_courtyard_4k.exr', function (texture) {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = texture; // Só iluminação
+        // Não defina scene.background!
+      });
     const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
     let cameraDistance = 5.5; // Mais distante
     let cameraTarget = new THREE.Vector3(0, 1, 0); // Centro do equipamento
@@ -37,6 +48,8 @@ function AirConditionerViewer() {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
     // Luzes
@@ -49,8 +62,18 @@ function AirConditionerViewer() {
     // Carregar modelo GLB
     const loader = new GLTFLoader();
     let model: THREE.Object3D = new THREE.Object3D();
+    let ventiladorEvap: THREE.Object3D | null = null;
+    let tuboGasMesh: THREE.Mesh | null = null;
     loader.load('/splitão.glb', (gltf: GLTF) => {
       model = gltf.scene;
+      model.traverse((child) => {
+        if (child.isMesh && child.name === 'Ventilador_Evap') {
+          ventiladorEvap = child;
+        }
+        if (child.isMesh && child.material.name === 'Material_Tubo_Gas_Laranja') {
+          tuboGasMesh = child;
+        }
+      });
       scene.add(model);
     });
 
@@ -110,6 +133,9 @@ function AirConditionerViewer() {
       cameraAngleY += (targetAngleY - cameraAngleY) * 0.1;
       cameraAngleX += (targetAngleX - cameraAngleX) * 0.1;
       updateCamera();
+      if (ventiladorEvap) {
+        ventiladorEvap.rotation.x += -0.1; // ajuste de rotação
+      }
       renderer.render(scene, camera);
     };
     animate();

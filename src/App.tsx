@@ -23,7 +23,7 @@ function AirConditionerViewer() {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0); // Fundo claro
     new EXRLoader()
-      .load('/overcast_industrial_courtyard_4k.exr', function (texture) {
+      .load('/lights/studio.exr', function (texture) {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         scene.environment = texture; // Só iluminação
         // Não defina scene.background!
@@ -31,8 +31,8 @@ function AirConditionerViewer() {
     const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
     let cameraDistance = 5.5; // Mais distante
     let cameraTarget = new THREE.Vector3(0, 1, 0); // Centro do equipamento
-    let cameraAngleY = 0; // Rotação horizontal
-    let cameraAngleX = 0.3; // Rotação vertical inicial (levemente de cima)
+    let cameraAngleY = Math.PI / 1.6; // Rotação horizontal 
+    let cameraAngleX = 0.1; // Rotação vertical inicial (levemente de cima)
     const minPolarAngle = -Math.PI / 2 + 0.15; // Limite para não inverter
     const maxPolarAngle = Math.PI / 2 - 0.15;
 
@@ -64,14 +64,24 @@ function AirConditionerViewer() {
     let model: THREE.Object3D = new THREE.Object3D();
     let ventiladorEvap: THREE.Object3D | null = null;
     let tuboGasMesh: THREE.Mesh | null = null;
-    loader.load('/splitão.glb', (gltf: GLTF) => {
+    let compressor1: THREE.Object3D | null = null;
+    let compressor2: THREE.Object3D | null = null;
+    loader.load('/rooftop_engie.glb', (gltf: GLTF) => {
       model = gltf.scene;
-      model.traverse((child) => {
-        if (child.isMesh && child.name === 'Ventilador_Evap') {
-          ventiladorEvap = child;
-        }
-        if (child.isMesh && child.material.name === 'Material_Tubo_Gas_Laranja') {
-          tuboGasMesh = child;
+      model.traverse((child) => { 
+        if (child.isMesh) {
+          if (child.material && child.material.name === 'Black_Ventilation') {
+            ventiladorEvap = child;
+          }
+          if (child.material.name === 'Material_Tubo_Gas_Laranja') {
+            tuboGasMesh = child;
+          }
+          if (child.material.name === 'Black_Compressor1') {
+            compressor1 = child;
+          }
+          if (child.material.name === 'Black_Compressor2') {
+            compressor2 = child;
+          }
         }
       });
       scene.add(model);
@@ -126,16 +136,58 @@ function AirConditionerViewer() {
     };
     window.addEventListener('resize', handleResize);
 
+    // Variável de status da ventilação
+    let ventiladorStatus: 'bom' | 'alerta' | 'critico' = 'alerta';
+    let compressor1Status: 'bom' | 'alerta' | 'critico' = 'critico';
+    let compressor2Status: 'bom' | 'alerta' | 'critico' = 'alerta';
+
     // Animação
     const animate = () => {
       requestAnimationFrame(animate);
-      // Suavizar rotação
+      // Suavizar rotação 
       cameraAngleY += (targetAngleY - cameraAngleY) * 0.1;
       cameraAngleX += (targetAngleX - cameraAngleX) * 0.1;
       updateCamera();
-      if (ventiladorEvap) {
-        ventiladorEvap.rotation.x += -0.1; // ajuste de rotação
+
+      if (ventiladorEvap && ventiladorEvap instanceof THREE.Mesh) {
+        ventiladorEvap.rotation.x += 0.08;
       }
+
+      const time = performance.now() * 0.0025; // menor frequência
+
+      const applyStatusEffect = (mesh: THREE.Object3D | null, status: 'bom' | 'alerta' | 'critico') => {
+        if (mesh && mesh instanceof THREE.Mesh && mesh.material instanceof THREE.MeshStandardMaterial) {
+          if (status === 'critico') {
+            const pulse = (Math.sin(time * 2) + 1) / 2;
+            const baseColor = new THREE.Color('#DB3735');
+            const currentColor = new THREE.Color().lerpColors(new THREE.Color('#701313'), baseColor, pulse);
+            mesh.material.color.copy(currentColor);
+          } else if (status === 'alerta') {
+            const pulse = (Math.sin(time * 2) + 1) / 2;
+            const baseColor = new THREE.Color('#FF8C47');
+            const currentColor = new THREE.Color().lerpColors(new THREE.Color('#975800'), baseColor, pulse);
+            mesh.material.color.copy(currentColor);
+          } else {
+            mesh.material.color.set('#000000');
+          }
+        }
+      };
+
+      applyStatusEffect(ventiladorEvap, ventiladorStatus);
+      applyStatusEffect(compressor1, compressor1Status);
+      applyStatusEffect(compressor2, compressor2Status);
+
+      const ventCompress1 = model.getObjectByName('Vent_Compress_1');
+      const ventCompress2 = model.getObjectByName('Vent_Compress_2');
+
+      if (ventCompress1) {
+        ventCompress1.rotation.y += 0.09;
+      }
+
+      if (ventCompress2) {
+        ventCompress2.rotation.y += 0.09;
+      }
+
       renderer.render(scene, camera);
     };
     animate();

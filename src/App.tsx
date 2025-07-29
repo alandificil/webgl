@@ -66,6 +66,22 @@ function AirConditionerViewer() {
     let tuboGasMesh: THREE.Mesh | null = null;
     let compressor1: THREE.Object3D | null = null;
     let compressor2: THREE.Object3D | null = null;
+
+    // Declarar variável para armazenar os meshes White_Equipment
+    let whiteEquipments: THREE.Object3D[] = [];
+
+    // Declarar variável equipamentoStatus junto com os outros status
+    let ventiladorStatus: 'bom' | 'alerta' | 'critico' = 'bom';
+    let compressor1Status: 'bom' | 'alerta' | 'critico' = 'critico';
+    let compressor2Status: 'bom' | 'alerta' | 'critico' = 'bom';
+    let equipamentoStatus: 'bom' | 'alerta' | 'critico' = 'alerta';
+
+    // Declarar as variáveis para armazenar os meshes das plaquinhas:
+    let statusCircleVent: THREE.Object3D | null = null;
+    let statusCircleC1: THREE.Object3D | null = null;
+    let statusCircleC2: THREE.Object3D | null = null;
+    let statusCircleOther: THREE.Object3D | null = null;
+
     loader.load('/rooftop_engie.glb', (gltf: GLTF) => {
       model = gltf.scene;
       model.traverse((child) => { 
@@ -81,6 +97,21 @@ function AirConditionerViewer() {
           }
           if (child.material.name === 'Black_Compressor2') {
             compressor2 = child;
+          }
+          if (child.material && child.material.name === 'White_Equipment') {
+            whiteEquipments.push(child);
+          }
+          if (child.isMesh && child.material && child.material.name === 'Status_Color_Circle_Ventilation') {
+            statusCircleVent = child;
+          }
+          if (child.material && child.material.name === 'Status_Color_Circle_C1') {
+            statusCircleC1 = child;
+          }
+          if (child.material && child.material.name === 'Status_Color_Circle_C2') {
+            statusCircleC2 = child;
+          }
+          if (child.material && child.material.name === 'Status_Color_Circle_Other') {
+            statusCircleOther = child;
           }
         }
       });
@@ -136,10 +167,26 @@ function AirConditionerViewer() {
     };
     window.addEventListener('resize', handleResize);
 
-    // Variável de status da ventilação
-    let ventiladorStatus: 'bom' | 'alerta' | 'critico' = 'alerta';
-    let compressor1Status: 'bom' | 'alerta' | 'critico' = 'critico';
-    let compressor2Status: 'bom' | 'alerta' | 'critico' = 'alerta';
+    // Função para aplicar cor do status nas plaquinhas
+    function applyStatusColor(
+      mesh: THREE.Object3D | null,
+      status: 'bom' | 'alerta' | 'critico'
+    ) {
+      if (
+        mesh &&
+        mesh instanceof THREE.Mesh &&
+        (mesh.material instanceof THREE.MeshStandardMaterial ||
+          mesh.material instanceof THREE.MeshBasicMaterial)
+      ) {
+        if (status === 'critico') {
+          mesh.material.color.set('#DB3735');
+        } else if (status === 'alerta') {
+          mesh.material.color.set('#FF8C47');
+        } else {
+          mesh.material.color.set('#008836'); // verde para bom (plaquinhas)
+        }
+      }
+    }
 
     // Animação
     const animate = () => {
@@ -187,6 +234,30 @@ function AirConditionerViewer() {
       if (ventCompress2) {
         ventCompress2.rotation.y += 0.09;
       }
+
+      // Nova lógica para piscar suavemente os White_Equipment
+      whiteEquipments.forEach(mesh => {
+        if (mesh && mesh instanceof THREE.Mesh && mesh.material instanceof THREE.MeshStandardMaterial) {
+          if (equipamentoStatus === 'critico') {
+            const pulse = (Math.sin(time * 1) + 1) / 2; // piscar mais lento
+            const baseColor = new THREE.Color('#DB3735');
+            const blendedColor = new THREE.Color().lerpColors(new THREE.Color('#ffffff'), baseColor, pulse * 0.9); 
+            mesh.material.color.copy(blendedColor);
+          } else if (equipamentoStatus === 'alerta') {
+            const pulse = (Math.sin(time * 1) + 1) / 2;
+            const baseColor = new THREE.Color('#FF8C47');
+            const blendedColor = new THREE.Color().lerpColors(new THREE.Color('#ffffff'), baseColor, pulse * 0.9);
+            mesh.material.color.copy(blendedColor);
+          } else {
+            mesh.material.color.set('#ffffff');
+          }
+        }
+      });
+
+      applyStatusColor(statusCircleVent, ventiladorStatus);
+      applyStatusColor(statusCircleC1, compressor1Status);
+      applyStatusColor(statusCircleC2, compressor2Status);
+      applyStatusColor(statusCircleOther, equipamentoStatus);
 
       renderer.render(scene, camera);
     };

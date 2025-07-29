@@ -241,12 +241,12 @@ function AirConditionerViewer() {
       const applyStatusEffect = (mesh: THREE.Object3D | null, status: 'bom' | 'alerta' | 'critico') => {
         if (mesh && mesh instanceof THREE.Mesh && mesh.material instanceof THREE.MeshStandardMaterial) {
           if (status === 'critico') {
-            const pulse = (Math.sin(time * 1) + 1) / 2; // Piscar mais lento (reduz a velocidade da pulsação).
+            const pulse = (Math.sin(time * 1.6) + 1) / 2; // Piscar mais lento (reduz a velocidade da pulsação).
             const baseColor = new THREE.Color('#DB3735'); // Cor base vermelha.
             const currentColor = new THREE.Color().lerpColors(new THREE.Color('#701313'), baseColor, pulse); // Interpola entre tons.
             mesh.material.color.copy(currentColor);
           } else if (status === 'alerta') {
-            const pulse = (Math.sin(time * 1) + 1) / 2; // Piscar mais lento (reduz a velocidade da pulsação).
+            const pulse = (Math.sin(time * 1.6) + 1) / 2; // Piscar mais lento (reduz a velocidade da pulsação).
             const baseColor = new THREE.Color('#FF8C47'); // Cor base laranja.
             const currentColor = new THREE.Color().lerpColors(new THREE.Color('#975800'), baseColor, pulse);
             mesh.material.color.copy(currentColor);
@@ -266,11 +266,11 @@ function AirConditionerViewer() {
       const ventCompress2 = model.getObjectByName('Vent_Compress_2');
 
       if (ventCompress1) {
-        ventCompress1.rotation.y += 0.09;
+        ventCompress1.rotation.y += 0.1;
       }
 
       if (ventCompress2) {
-        ventCompress2.rotation.y += 0.09;
+        ventCompress2.rotation.y += 0.1;
       }
 
       // Aplica as cores estáticas nas plaquinhas de status.

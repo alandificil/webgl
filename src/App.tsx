@@ -21,7 +21,7 @@ function AirConditionerViewer() {
 
     // Criação da cena 3D, que é o container principal onde todos os objetos, luzes e câmeras serão adicionados.
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f0f0); // Define um fundo claro para a cena.
+    scene.background = new THREE.Color(0xffffff); // Define fundo branco puro para a cena.
 
     // Carregamento da textura de ambiente HDR usando EXRLoader para iluminação realista.
     // Essa textura não será usada como fundo, apenas para iluminação ambiente.
@@ -37,10 +37,10 @@ function AirConditionerViewer() {
     const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
 
     // Variáveis para controlar a posição da câmera em coordenadas esféricas para facilitar a rotação.
-    let cameraDistance = 5.5; // Distância da câmera ao centro do objeto.
-    let cameraTarget = new THREE.Vector3(0, 1, 0); // Ponto para onde a câmera olha (centro do equipamento).
-    let cameraAngleY = Math.PI / 1.6; // Ângulo horizontal inicial da câmera.
-    let cameraAngleX = 0.1; // Ângulo vertical inicial da câmera (ligeiramente de cima).
+    let cameraDistance = 5; // Distância da câmera ao centro do objeto.
+    let cameraTarget = new THREE.Vector3(0,0.5, 0); // Ponto para onde a câmera olha (centro do equipamento).
+    let cameraAngleY = Math.PI / 1.5; // Ângulo horizontal inicial da câmera.
+    let cameraAngleX = 0.5; // Ângulo vertical inicial da câmera (ligeiramente de cima).
     const minPolarAngle = -Math.PI / 2 + 0.15; // Limite inferior para a rotação vertical (não permite inverter).
     const maxPolarAngle = Math.PI / 2 - 0.15;  // Limite superior para a rotação vertical.
 
@@ -56,18 +56,18 @@ function AirConditionerViewer() {
     updateCamera();
 
     // Criação do renderizador WebGL para desenhar a cena na tela.
-    // Antialias habilitado para suavizar as bordas e alpha para transparência.
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // Antialias habilitado para suavizar as bordas e sem alpha (sem transparência).
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight); // Ajusta o tamanho do canvas ao container.
-    renderer.toneMapping = THREE.ACESFilmicToneMapping; // Mapeamento de tons para cores realistas.
+    renderer.toneMapping = THREE.NoToneMapping; // Não altera a cor de fundo.
     renderer.outputColorSpace = THREE.SRGBColorSpace;   // Espaço de cor padrão para monitores.
     renderer.domElement.style.cursor = 'grab';
     mount.appendChild(renderer.domElement); // Adiciona o canvas do renderizador ao DOM.
 
     // Configuração das luzes da cena para iluminar o modelo 3D.
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); // Luz ambiente geral.
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // Luz ambiente geral.
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Luz direcional simulando o sol.
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6); // Luz direcional simulando o sol.
     directionalLight.position.set(5, 10, 7.5); // Posição da luz.
     scene.add(directionalLight);
 
@@ -248,7 +248,7 @@ function AirConditionerViewer() {
           } else if (status === 'alerta') {
             const pulse = (Math.sin(time * 1.6) + 1) / 2; // Piscar mais lento (reduz a velocidade da pulsação).
             const baseColor = new THREE.Color('#FF8C47'); // Cor base laranja.
-            const currentColor = new THREE.Color().lerpColors(new THREE.Color('#975800'), baseColor, pulse);
+            const currentColor = new THREE.Color().lerpColors(new THREE.Color('#975800'), baseColor, pulse); // Interpola entre tons.
             mesh.material.color.copy(currentColor);
           } else {
             mesh.material.color.set('#000000'); // Preto para status bom (sem efeito).
@@ -298,7 +298,7 @@ function AirConditionerViewer() {
   }, []);
 
   // Retorna um div que servirá como container para o canvas WebGL.
-  return <div ref={mountRef} style={{ width: '100%', height: '500px', background: '#222', borderRadius: 8, margin: '2rem auto' }} />;
+  return <div ref={mountRef} style={{ width: '100%', height: '500px', background: '#fff', borderRadius: 8, margin: '2rem auto' }} />;
 }
 
 function App() {
